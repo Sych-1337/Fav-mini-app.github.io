@@ -16,5 +16,5 @@ if (user) {
 
 // Функция для редиректа через 5 секунд
 setTimeout(function() {
-    window.location.href = "https://favbet.com.ua/";
+    window.location.href = "https://www.favbet.ua/uk/short-register/?clickid=1090568018&advertiser_id=8&b_tag=a_513b_89c_1090568018AffiliateId=160&publisher_id=160&track_id=1090568018&param1=";
 }, 5000);  // 5000 миллисекунд = 5 секунд
