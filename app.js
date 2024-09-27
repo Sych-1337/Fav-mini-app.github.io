@@ -9,7 +9,7 @@ const greetingDiv = document.getElementById('greeting');
 
 // Отображение приветствия
 if (user) {
-    greetingDiv.textContent = `Привет, ${user.first_name}! Добро пожаловать в наше Mini App!`;
+    greetingDiv.textContent = `Привет, ${user.first_name}! Добро пожаловать в наше Mini App! +commit`;
 } else {
     greetingDiv.textContent = 'Привет! Добро пожаловать в наше Mini App!';
 }
