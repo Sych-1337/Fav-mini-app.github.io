@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кликер с меню</title>
+    <title>Кликер с меню и футером</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,7 +14,7 @@
             height: 100vh;
             background-color: #f4f4f9;
         }
-        /* Стили для основного контейнера */
+        /* Основной контейнер */
         #main-content {
             flex: 1;
             display: flex;
@@ -53,13 +53,26 @@
             background-color: #333;
             color: white;
             padding: 10px;
+            margin-bottom: 60px; /* Отступ для футера */
         }
+
         .menu-item {
             cursor: pointer;
             font-size: 1.2rem;
         }
         .menu-item:hover {
             background-color: #444;
+        }
+
+        /* Футер */
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #333;
+            color: white;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
         }
     </style>
 </head>
@@ -99,6 +112,11 @@
         <div class="menu-item" onclick="showScreen('clicker-screen')">Основной экран</div>
         <div class="menu-item" onclick="showScreen('news-screen')">Новости</div>
     </div>
+
+    <!-- Футер -->
+    <footer>
+        Создатель: Sych1337 | 2024
+    </footer>
 
     <script>
         let clicks = 0;
