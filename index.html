@@ -3,58 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кликер</title>
+    <title>Кликер с меню</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        /* Стили для основного контейнера */
+        #main-content {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
+            text-align: center;
         }
+
+        /* Скрытые экраны */
+        .screen {
+            display: none;
+        }
+
+        /* Активный экран */
+        .screen.active {
+            display: block;
+        }
+
+        /* Счётчик кликов */
         #counter {
             font-size: 3rem;
             margin-bottom: 20px;
         }
+
+        /* Кликер */
         #clickerImage {
             width: 200px;
             height: 200px;
             cursor: pointer;
         }
+
+        /* Нижнее меню */
+        #menu {
+            display: flex;
+            justify-content: space-around;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+        }
+        .menu-item {
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .menu-item:hover {
+            background-color: #444;
+        }
     </style>
 </head>
 <body>
 
-    <div id="counter">Клики: 0</div>
-    <img id="clickerImage" src="https://via.placeholder.com/200" alt="Click Me" onclick="handleClick()">
+    <!-- Основное содержимое -->
+    <div id="main-content">
+
+        <!-- Основной экран (кликер) -->
+        <div id="clicker-screen" class="screen active">
+            <div id="counter">Клики: 0</div>
+            <img id="clickerImage" src="https://via.placeholder.com/200" alt="Click Me" onclick="handleClick()">
+        </div>
+
+        <!-- Экран с бустами -->
+        <div id="boost-screen" class="screen">
+            <h1>Бусты для кликов</h1>
+            <p>Здесь можно увеличить скорость кликов.</p>
+            <ul>
+                <li>+1 клик за нажатие — 100 монет</li>
+                <li>+5 кликов за нажатие — 500 монет</li>
+                <li>+10 кликов за нажатие — 1000 монет</li>
+            </ul>
+        </div>
+
+        <!-- Экран с новостями -->
+        <div id="news-screen" class="screen">
+            <h1>Новости</h1>
+            <p>Здесь будут отображаться последние новости игры.</p>
+        </div>
+
+    </div>
+
+    <!-- Нижнее меню -->
+    <div id="menu">
+        <div class="menu-item" onclick="showScreen('boost-screen')">Буст</div>
+        <div class="menu-item" onclick="showScreen('clicker-screen')">Основной экран</div>
+        <div class="menu-item" onclick="showScreen('news-screen')">Новости</div>
+    </div>
 
     <script>
         let clicks = 0;
 
-        // Список изображений для смены по достижению разных уровней
+        // Список изображений для смены по достижению разных уровней кликов
         const images = {
-            10: 'https://via.placeholder.com/200/ff0000', // меняется на красную картинку
-            25: 'https://via.placeholder.com/200/00ff00', // меняется на зеленую
-            50: 'https://via.placeholder.com/200/0000ff', // меняется на синюю
-            100: 'https://via.placeholder.com/200/ffff00', // меняется на желтую
-            250: 'https://via.placeholder.com/200/ff00ff', // меняется на фиолетовую
-            500: 'https://via.placeholder.com/200/00ffff', // меняется на бирюзовую
-            1000: 'https://via.placeholder.com/200/000000', // меняется на черную
+            10: 'https://via.placeholder.com/200/ff0000',
+            25: 'https://via.placeholder.com/200/00ff00',
+            50: 'https://via.placeholder.com/200/0000ff',
+            100: 'https://via.placeholder.com/200/ffff00',
+            250: 'https://via.placeholder.com/200/ff00ff',
+            500: 'https://via.placeholder.com/200/00ffff',
+            1000: 'https://via.placeholder.com/200/000000'
         };
 
+        // Обработка клика по изображению
         function handleClick() {
-            // Увеличиваем счётчик кликов
             clicks++;
-            // Обновляем отображение счётчика
             document.getElementById('counter').textContent = `Клики: ${clicks}`;
 
-            // Проверяем, достигли ли мы одного из порогов для смены картинки
+            // Изменение изображения при достижении определённого количества кликов
             if (images[clicks]) {
                 document.getElementById('clickerImage').src = images[clicks];
             }
+        }
+
+        // Функция для показа нужного экрана
+        function showScreen(screenId) {
+            // Скрыть все экраны
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+
+            // Показать выбранный экран
+            document.getElementById(screenId).classList.add('active');
         }
     </script>
 
