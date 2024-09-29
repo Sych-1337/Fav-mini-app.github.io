@@ -1,21 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Favbet</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Кликер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        #counter {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        #clickerImage {
+            width: 200px;
+            height: 200px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Открыть сайт Favbet</h1>
-    <button onclick="openFavbet()">Открыть Favbet</button>
+
+    <div id="counter">Клики: 0</div>
+    <img id="clickerImage" src="https://via.placeholder.com/200" alt="Click Me" onclick="handleClick()">
 
     <script>
-        function openFavbet() {
-            window.open('https://www.favbet.ua/', '_blank');
-        }
+        let clicks = 0;
 
-        Telegram.WebApp.ready();
+        // Список изображений для смены по достижению разных уровней
+        const images = {
+            10: 'https://via.placeholder.com/200/ff0000', // меняется на красную картинку
+            25: 'https://via.placeholder.com/200/00ff00', // меняется на зеленую
+            50: 'https://via.placeholder.com/200/0000ff', // меняется на синюю
+            100: 'https://via.placeholder.com/200/ffff00', // меняется на желтую
+            250: 'https://via.placeholder.com/200/ff00ff', // меняется на фиолетовую
+            500: 'https://via.placeholder.com/200/00ffff', // меняется на бирюзовую
+            1000: 'https://via.placeholder.com/200/000000', // меняется на черную
+        };
+
+        function handleClick() {
+            // Увеличиваем счётчик кликов
+            clicks++;
+            // Обновляем отображение счётчика
+            document.getElementById('counter').textContent = `Клики: ${clicks}`;
+
+            // Проверяем, достигли ли мы одного из порогов для смены картинки
+            if (images[clicks]) {
+                document.getElementById('clickerImage').src = images[clicks];
+            }
+        }
     </script>
+
 </body>
 </html>
