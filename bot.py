@@ -1,5 +1,4 @@
-from sched import scheduler
-
+from apscheduler.schedulers.background import BackgroundScheduler
 import telegram
 import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -9,6 +8,9 @@ TOKEN = '7391894514:AAGIHR4g83Ifyu-ZExbMUC4-SXnIP7Z0ElA'
 
 app = ApplicationBuilder().token(TOKEN).build()
 
+# Инициализируем планировщик задач
+scheduler = BackgroundScheduler()
+scheduler.start()
 
 async def start(update, context):
     await context.bot.send_photo(
@@ -23,16 +25,17 @@ async def start(update, context):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Отправляем сообщение с кнопками
-    await update.message.reply_text("Вітаю, дорогий клієнте🙌"
-                "Цієї весни ми даємо можливість першим 100 гравцям отримати будь який бонус на свій рахунок🎁💰"
-                "👇Обирай будь-яку коробку за номером та забирай свій приз👇", reply_markup=reply_markup)
-
+    await update.message.reply_text(
+        "Вітаю, дорогий клієнте🙌 "
+        "Цієї весни ми даємо можливість першим 100 гравцям отримати будь-який бонус на свій рахунок🎁💰 "
+        "👇Обирай будь-яку коробку за номером та забирай свій приз👇",
+        reply_markup=reply_markup
+    )
 
 # Функция для обработки нажатий на кнопки 1, 2, 3
 async def button_handler(update, context):
     query = update.callback_query
-    await query.answer()  # Подтверждаем получение нажатия
+    await query.answer()
 
     # Подготовка кнопок для регистрации
     registration_keyboard = [
@@ -41,7 +44,6 @@ async def button_handler(update, context):
     ]
     reply_markup = InlineKeyboardMarkup(registration_keyboard)
 
-    # Выбираем картинку и текст в зависимости от выбора пользователя
     if query.data == "option_1":
         photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
         text = ("😍️ОТАКОЇ😍️\n"
@@ -51,10 +53,10 @@ async def button_handler(update, context):
                 "+ 100FS в грі Starlight Princess \n\n"
                 "Щоб забрати подарунок👇️ :\n"
                 "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-        "2. Пройдіть швидку реєстрацію\n"
-        "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-        "4. Отримаєте бонус на Ваш рахунок\n\n"
-        "👇 Скоріше приєднуйся до прибуткової гри 👇")
+                "2. Пройдіть швидку реєстрацію\n"
+                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
+                "4. Отримаєте бонус на Ваш рахунок\n\n"
+                "👇 Скоріше приєднуйся до прибуткової гри 👇")
 
     elif query.data == "option_2":
         photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
@@ -65,11 +67,10 @@ async def button_handler(update, context):
                 "+ 100FS в грі Starlight Princess \n\n"
                 "Щоб забрати подарунок👇️ :\n"
                 "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-        "2. Пройдіть швидку реєстрацію\n"
-        "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-        "4. Отримаєте бонус на Ваш рахунок\n\n"
-        "👇 Скоріше приєднуйся до прибуткової гри 👇")
-
+                "2. Пройдіть швидку реєстрацію\n"
+                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
+                "4. Отримаєте бонус на Ваш рахунок\n\n"
+                "👇 Скоріше приєднуйся до прибуткової гри 👇")
 
     elif query.data == "option_3":
         photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
@@ -80,10 +81,10 @@ async def button_handler(update, context):
                 "+ 100FS в грі Starlight Princess \n\n"
                 "Щоб забрати подарунок👇️ :\n"
                 "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-        "2. Пройдіть швидку реєстрацію\n"
-        "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-        "4. Отримаєте бонус на Ваш рахунок\n\n"
-        "👇 Скоріше приєднуйся до прибуткової гри 👇")
+                "2. Пройдіть швидку реєстрацію\n"
+                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
+                "4. Отримаєте бонус на Ваш рахунок\n\n"
+                "👇 Скоріше приєднуйся до прибуткової гри 👇")
 
     await context.bot.send_photo(
         chat_id=query.message.chat_id,
@@ -92,31 +93,34 @@ async def button_handler(update, context):
         reply_markup=reply_markup
     )
 
-    async def schedule_message(update, context):
-        chat_id = update.message.chat_id
-        if len(context.args) < 3:
-            await update.message.reply_text(
-                "Неправильный формат. Используйте: /schedule <время> <ссылка_на_картинку> <текст>")
-            return
+# Функция для планирования сообщений с картинкой и текстом
+async def schedule_message(update, context):
+    chat_id = update.message.chat_id
+    if len(context.args) < 3:
+        await update.message.reply_text("Неправильный формат. Используйте: /schedule <время> <ссылка_на_картинку> <текст>")
+        return
 
-        try:
-            run_time = datetime.datetime.strptime(context.args[0], '%Y-%m-%d %H:%M')
-        except ValueError:
-            await update.message.reply_text("Неправильный формат времени. Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ")
-            return
+    try:
+        # Получаем время в формате ГГГГ-ММ-ДД ЧЧ:ММ
+        run_time = datetime.datetime.strptime(context.args[0], '%Y-%m-%d %H:%M')
+    except ValueError:
+        await update.message.reply_text("Неправильный формат времени. Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ")
+        return
 
-        photo_url = context.args[1]
-        text = ' '.join(context.args[2:])
+    # Получаем ссылку на картинку и текст
+    photo_url = context.args[1]
+    text = ' '.join(context.args[2:])  # Соединяем текст сообщения
 
-        def send_scheduled_message(context):
-            context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=text)
+    # Функция для отправки запланированного сообщения
+    def send_scheduled_message(context):
+        context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=text)
 
-        scheduler.add_job(send_scheduled_message, 'date', run_date=run_time, args=[context])
-        await update.message.reply_text(
-            f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_url}")
-
-    app.add_handler(CommandHandler("schedule", schedule_message))
+    # Планируем отправку сообщения
+    scheduler.add_job(send_scheduled_message, 'date', run_date=run_time, args=[context])
+    await update.message.reply_text(f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_url}")
 
 app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("schedule", schedule_message))
 app.add_handler(CallbackQueryHandler(button_handler))
+
 app.run_polling()
