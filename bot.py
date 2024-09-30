@@ -105,15 +105,15 @@ async def button_handler(update, context):
             await update.message.reply_text("Неправильный формат времени. Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ")
             return
 
-        photo_urls = context.args[1]
+        photo_url = context.args[1]
         text = ' '.join(context.args[2:])
 
         def send_scheduled_message(context):
-            context.bot.send_photo(chat_id=chat_id, photo=photo_urls, caption=text)
+            context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=text)
 
         scheduler.add_job(send_scheduled_message, 'date', run_date=run_time, args=[context])
         await update.message.reply_text(
-            f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_urls}")
+            f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_url}")
 
     app.add_handler(CommandHandler("schedule", schedule_message))
 
