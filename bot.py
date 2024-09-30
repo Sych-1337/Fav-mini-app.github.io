@@ -1,4 +1,7 @@
+from sched import scheduler
+
 import telegram
+import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 
@@ -88,6 +91,31 @@ async def button_handler(update, context):
         caption=text,
         reply_markup=reply_markup
     )
+
+    async def schedule_message(update, context):
+        chat_id = update.message.chat_id
+        if len(context.args) < 3:
+            await update.message.reply_text(
+                "Неправильный формат. Используйте: /schedule <время> <ссылка_на_картинку> <текст>")
+            return
+
+        try:
+            run_time = datetime.datetime.strptime(context.args[0], '%Y-%m-%d %H:%M')
+        except ValueError:
+            await update.message.reply_text("Неправильный формат времени. Используйте формат: ГГГГ-ММ-ДД ЧЧ:ММ")
+            return
+
+        photo_urls = context.args[1]
+        text = ' '.join(context.args[2:])
+
+        def send_scheduled_message(context):
+            context.bot.send_photo(chat_id=chat_id, photo=photo_urls, caption=text)
+
+        scheduler.add_job(send_scheduled_message, 'date', run_date=run_time, args=[context])
+        await update.message.reply_text(
+            f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_urls}")
+
+    app.add_handler(CommandHandler("schedule", schedule_message))
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button_handler))
