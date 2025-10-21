@@ -1,11 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://tds.favbet.partners/331/127?l=111&utm_medium=NewBotAB&utm_source=NewBotAB&utm_campaign=NewBotAB&creative_type=link&creative_id=111">
-    <title>Redirecting...</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fav Mini App Redirect</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;margin:0;padding:24px;background:#0f1221;color:#fff}
+    .card{background:#151936;border-radius:12px;padding:16px;max-width:640px}
+    .err{color:#ff7272}
+    a.btn,button.btn{display:inline-block;margin-top:12px;padding:10px 14px;background:#4b7cff;color:#fff;border-radius:8px;text-decoration:none;border:none}
+    input{padding:10px;border-radius:8px;border:1px solid #444;background:#0f1221;color:#fff;width:100%;max-width:360px}
+    .muted{color:#b9bdd1}
+  </style>
 </head>
 <body>
-    <p>If you are not redirected, <a href="https://tds.favbet.partners/331/127?l=111&utm_medium=NewBotAB&utm_source=NewBotAB&utm_campaign=NewBotAB&creative_type=link&creative_id=111">click here</a>.</p>
+  <div class="card">
+    <h2>Fav Mini App Redirect</h2>
+    <div id="status" class="muted">Проверяем параметры...</div>
+    <div id="error" class="err" style="display:none;"></div>
+    <div id="fallback" style="display:none;">
+      <p class="muted">Похоже, вы открыли страницу вне Telegram. Введите payload вручную ("330_126_640" или base64url("330:126:640")), либо укажите параметры в URL (?id=&p2=&l=):</p>
+      <input id="payload" placeholder="330_126_640" />
+      <button id="go" class="btn">Перейти</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
