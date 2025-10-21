@@ -132,5 +132,5 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("schedule", schedule_message))
 app.add_handler(CallbackQueryHandler(button_handler))
 
-logger.info("Starting bot polling...")
-app.run_polling()
+logger.info("Starting bot polling...")  
+app.run_polling() 
