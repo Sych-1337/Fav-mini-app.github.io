@@ -21,6 +21,18 @@
     if (new Blob([raw]).size > 64) throw new Error('Payload превышает 64 байта');
 
     const reNum = /^\d+$/;
+    // 1) Если пришёл полный URL — просто редиректим (разрешаем только go.favbet.ua)
+    if (/^https?:\/\//i.test(raw)) {
+      try {
+        const u = new URL(raw);
+        if (u.hostname !== 'go.favbet.ua') {
+          throw new Error('Домен редиректа не разрешён');
+        }
+        return ['__URL__', raw, ''];
+      } catch (_) {
+        throw new Error('Некорректный URL в payload');
+      }
+    }
     if (raw.includes('_')) {
       const parts = raw.split('_');
       if (parts.length !== 3) throw new Error('Некорректный формат payload: ожидается id_p2_l');
@@ -52,7 +64,7 @@
 
   function redirect(id, p2, l) {
     // Домен жёстко разрешён по ТЗ
-    const target = `https://go.favbet.ua/${id}/${p2}?l=${l}`;
+    const target = id === '__URL__' ? p2 : `https://go.favbet.ua/${id}/${p2}?l=${l}`;
     if (statusEl) statusEl.textContent = 'Редиректим...';
     location.replace(target);
   }
