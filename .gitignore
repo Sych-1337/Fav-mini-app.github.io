@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+!.env.example
+.env
+.venv/
+.env.*
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# Byte-compiled / optimized / DLL files
+build/
+dist/
+*.egg-info/
+
+# Tests
+.pytest_cache/
+.report/
+
+# OS
+.DS_Store
+Thumbs.db
