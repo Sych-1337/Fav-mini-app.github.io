@@ -44,7 +44,8 @@
     } else if (/^[A-Za-z0-9_-]+$/.test(raw)) {
       // base64url decode → could be either full URL or "id:p2:l"
       try {
-        const pad = '='.repeat((-raw.length) % 4);
+        const padLen = (4 - (raw.length % 4)) % 4;
+        const pad = '='.repeat(padLen);
         const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + pad;
         const decoded = atob(b64);
         // Case A: decoded is a full URL
