@@ -42,11 +42,20 @@
       }
       return [id, p2, l];
     } else if (/^[A-Za-z0-9_-]+$/.test(raw)) {
-      // base64url decode to "id:p2:l"
+      // base64url decode → could be either full URL or "id:p2:l"
       try {
         const pad = '='.repeat((-raw.length) % 4);
         const b64 = raw.replace(/-/g, '+').replace(/_/g, '/') + pad;
         const decoded = atob(b64);
+        // Case A: decoded is a full URL
+        if (/^https?:\/\//i.test(decoded)) {
+          const u = new URL(decoded);
+          if (u.hostname !== 'go.favbet.ua') {
+            throw new Error('Домен редиректа не разрешён');
+          }
+          return ['__URL__', decoded, ''];
+        }
+        // Case B: decoded expected to be "id:p2:l"
         const parts = decoded.split(':');
         if (parts.length !== 3) throw new Error('Некорректный формат расшифровки: ожидается "id:p2:l"');
         const [id, p2, l] = parts;
