@@ -17,15 +17,22 @@
 <body>
   <div class="card">
     <h2>Fav Mini App Redirect</h2>
-    <div id="status" class="muted">Проверяем параметры...</div>
-    <div id="error" class="err" style="display:none;"></div>
-    <div id="fallback" style="display:none;">
-      <p class="muted">Похоже, вы открыли страницу вне Telegram. Введите payload вручную ("330_126_640" или base64url("330:126:640")), либо укажите параметры в URL (?id=&p2=&l=):</p>
-      <input id="payload" placeholder="330_126_640" />
-      <button id="go" class="btn">Перейти</button>
-    </div>
+    <div class="muted">Здійснюємо перенаправлення… Якщо редирект не спрацював, натисніть кнопку нижче.</div>
+    <p><a id="fallbackLink" class="btn" href="https://go.favbet.ua/311/134?l=591&utm_source=tgbot&utm_content=tg&creative_type=link&creative_id=591">Перейти зараз</a></p>
   </div>
 
-  <script src="app.js"></script>
+  <script>
+    (function(){
+      var target = 'https://go.favbet.ua/311/134?l=591&utm_source=tgbot&utm_content=tg&creative_type=link&creative_id=591';
+      // Ждём и мгновенно перенаправляем, без добавления записи в историю
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){
+          try { window.location.replace(target); } catch(e) { window.location.href = target; }
+        });
+      } else {
+        try { window.location.replace(target); } catch(e) { window.location.href = target; }
+      }
+    })();
+  </script>
 </body>
 </html>
