@@ -58,11 +58,6 @@ def _build_target_url(id_str: str, p2_str: str, l_str: str) -> str:
     return f"https://{domain}/{id_str}/{p2_str}?l={l_str}"
 
 async def start(update, context):
-    await context.bot.send_photo(
-        chat_id=update.effective_chat.id,
-        photo="https://www.dropbox.com/scl/fi/z8mizfnt40l2hrfig0j58/photo_2024-08-20_16-58-28.jpg?rlkey=aduxk31rerw4ru5928rhhfpaa&st=9m45qjur&dl=0",
-    )
-
     # Попробуем взять payload из аргументов /start
     payload = None
     if context.args:
@@ -92,12 +87,27 @@ async def start(update, context):
     )
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text(
-        "Вітаю, дорогий клієнте🙌 "
-        "Цієї весни ми даємо можливість першим 100 гравцям отримати будь-який бонус на свій рахунок🎁💰 "
-        "👇Обирай будь-яку коробку за номером та забирай свій приз👇",
-        reply_markup=reply_markup
+    # 1) Отправляем приветственное сообщение с HTML и emoji-id
+    chat_id = update.effective_chat.id
+    welcome_text = (
+        'Ласкаво просимо у Favbet! <emoji id="503026726308172796"></emoji>\n'
+        'Раді, що ти тепер з нами 🤝\n\n'
+        'Тут круті акції, ексклюзивні промокоди та безліч бонусів <emoji id="5301170991198654880"></emoji>\n'
+        'Словом, тільки твій всесвіт гри '
+        '<emoji id="5303136638861242426"></emoji>'
+        '<emoji id="5301286457099441206"></emoji>'
+        '<emoji id="503026726308172796"></emoji>'
     )
+    await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode='HTML')
+
+    # 2) Отправляем картинку 111.jpg с кнопками
+    img_path = os.path.join(os.path.dirname(__file__), "111.jpg")
+    with open(img_path, "rb") as photo_file:
+        await context.bot.send_photo(
+            chat_id=chat_id,
+            photo=photo_file,
+            reply_markup=reply_markup,
+        )
 
 # Функция для обработки нажатий на кнопки 1, 2, 3
 async def button_handler(update, context):
