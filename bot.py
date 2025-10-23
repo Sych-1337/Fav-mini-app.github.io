@@ -79,30 +79,22 @@ async def start(update, context):
         except Exception as e:
             logger.warning("Некорректный payload: %s", e)
 
-    keyboard = (
-        dynamic_buttons
-        + [
-            [InlineKeyboardButton("1", callback_data="option_1")],
-            [InlineKeyboardButton("2", callback_data="option_2")],
-            [InlineKeyboardButton("3", callback_data="option_3")],
-        ]
+    # Кнопка под главным сообщением: "Забрати бонус"
+    reply_markup = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Забрати бонус", url="https://go.favbet.ua/311/134?l=591&utm_source=tgbot&utm_content=tg&creative_type=link&creative_id=591")]]
     )
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # 1) Отправляем приветственное сообщение с HTML и emoji-id
+    # 1) Отправляем приветственное сообщение с обычными эмодзи
     chat_id = update.effective_chat.id
     welcome_text = (
-        'Ласкаво просимо у Favbet! <emoji id="503026726308172796"></emoji>\n'
+        'Ласкаво просимо у Favbet! 💅\n'
         'Раді, що ти тепер з нами 🤝\n\n'
-        'Тут круті акції, ексклюзивні промокоди та безліч бонусів <emoji id="5301170991198654880"></emoji>\n'
-        'Словом, тільки твій всесвіт гри '
-        '<emoji id="5303136638861242426"></emoji>'
-        '<emoji id="5301286457099441206"></emoji>'
-        '<emoji id="503026726308172796"></emoji>'
+        'Тут круті акції, ексклюзивні промокоди та безліч бонусів 💅\n'
+        'Словом, тільки твій всесвіт гри 🎰🎰🎰'
     )
-    await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode='HTML')
+    await context.bot.send_message(chat_id=chat_id, text=welcome_text, reply_markup=reply_markup)
 
-    # 2) Отправляем картинку с хостинга с кнопками (загружаем байты, т.к. ссылка не прямой файл)
+    # 2) Отправляем картинку с хостинга (без кнопок)
     photo_url = "https://prnt.sc/YT4wmRnnBUPU"
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
@@ -111,74 +103,17 @@ async def start(update, context):
             data = resp.content
         bio = io.BytesIO(data)
         bio.name = "111.jpg"  # имя файла для Telegram
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=bio,
-            reply_markup=reply_markup,
-        )
+        await context.bot.send_photo(chat_id=chat_id, photo=bio)
     except Exception as e:
         logger.warning("Не удалось скачать изображение по URL %s: %s", photo_url, e)
 
-# Функция для обработки нажатий на кнопки 1, 2, 3
+# Функция для обработки нажатий (сейчас callback-кнопок нет)
 async def button_handler(update, context):
     query = update.callback_query
-    await query.answer()
-
-    # Подготовка кнопок для регистрации
-    registration_keyboard = [
-        [InlineKeyboardButton("Реєстрація", url="https://tds.favbet.partners/331/127?l=111&utm_medium=NewBot&utm_source=NewBot&utm_campaign=NewBot&creative_type=link&creative_id=111")],
-        [InlineKeyboardButton("Реєстрація через Telegram", web_app=telegram.WebAppInfo("https://tds.favbet.partners/331/127?l=111&utm_medium=NewBotMini&utm_source=NewBotMini&utm_campaign=NewBotMini&creative_type=link&creative_id=111"))]
-    ]
-    reply_markup = InlineKeyboardMarkup(registration_keyboard)
-
-    if query.data == "option_1":
-        photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
-        text = ("😍️ОТАКОЇ😍️\n"
-                "🎁️Ти виграв 300 БЕЗКОШТОВНИХ обертів без відіграшу🎁️\n"
-                "А оскільки фріспіни БЕЗ ВІДІГРАШУ, "
-                "виграш одразу можна вивести на карту 💸 "
-                "+ 100FS в грі Starlight Princess \n\n"
-                "Щоб забрати подарунок👇️ :\n"
-                "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-                "2. Пройдіть швидку реєстрацію\n"
-                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-                "4. Отримаєте бонус на Ваш рахунок\n\n"
-                "👇 Скоріше приєднуйся до прибуткової гри 👇")
-
-    elif query.data == "option_2":
-        photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
-        text = ("😍️ОТАКОЇ😍️\n"
-                "🎁️Ти виграв 300 БЕЗКОШТОВНИХ обертів без відіграшу🎁️\n"
-                "А оскільки фріспіни БЕЗ ВІДІГРАШУ, "
-                "виграш одразу можна вивести на карту 💸 "
-                "+ 100FS в грі Starlight Princess \n\n"
-                "Щоб забрати подарунок👇️ :\n"
-                "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-                "2. Пройдіть швидку реєстрацію\n"
-                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-                "4. Отримаєте бонус на Ваш рахунок\n\n"
-                "👇 Скоріше приєднуйся до прибуткової гри 👇")
-
-    elif query.data == "option_3":
-        photo_url = "https://www.dropbox.com/scl/fi/qmt9g2pur5zgzex5ilcfv/photo_2024-08-20_16-58-36.jpg?rlkey=9ui7kivcg1jji6q4c007ozu9e&st=4uw7k61b&dl=0"
-        text = ("😍️ОТАКОЇ😍️\n"
-                "🎁️Ти виграв 300 БЕЗКОШТОВНИХ обертів без відіграшу🎁️\n"
-                "А оскільки фріспіни БЕЗ ВІДІГРАШУ, "
-                "виграш одразу можна вивести на карту 💸 "
-                "+ 100FS в грі Starlight Princess \n\n"
-                "Щоб забрати подарунок👇️ :\n"
-                "1. Натисніть Реєстрація ✅ і перейдіть на сайт\n"
-                "2. Пройдіть швидку реєстрацію\n"
-                "3. Станьте гравцем Favbet та внесіть депозит від 100 грн\n"
-                "4. Отримаєте бонус на Ваш рахунок\n\n"
-                "👇 Скоріше приєднуйся до прибуткової гри 👇")
-
-    await context.bot.send_photo(
-        chat_id=query.message.chat_id,
-        photo=photo_url,
-        caption=text,
-        reply_markup=reply_markup
-    )
+    if not query:
+        return
+    # Просто закрываем индикатор нажатия и подсказываем перейти по кнопке под сообщением
+    await query.answer(text="Скористайтесь кнопкою \"Забрати бонус\" під повідомленням", show_alert=False)
 
 # Функция для планирования сообщений с картинкой и текстом
 async def schedule_message(update, context):
