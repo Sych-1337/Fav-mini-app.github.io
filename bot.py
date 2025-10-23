@@ -1,4 +1,6 @@
 import telegram
+import httpx
+import io
 import datetime
 import os
 import logging
@@ -100,14 +102,22 @@ async def start(update, context):
     )
     await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode='HTML')
 
-    # 2) Отправляем картинку 111.jpg с кнопками
-    img_path = os.path.join(os.path.dirname(__file__), "111.jpg")
-    with open(img_path, "rb") as photo_file:
+    # 2) Отправляем картинку с хостинга с кнопками (загружаем байты, т.к. ссылка не прямой файл)
+    photo_url = "https://prnt.sc/YT4wmRnnBUPU"
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            resp = await client.get(photo_url)
+            resp.raise_for_status()
+            data = resp.content
+        bio = io.BytesIO(data)
+        bio.name = "111.jpg"  # имя файла для Telegram
         await context.bot.send_photo(
             chat_id=chat_id,
-            photo=photo_file,
+            photo=bio,
             reply_markup=reply_markup,
         )
+    except Exception as e:
+        logger.warning("Не удалось скачать изображение по URL %s: %s", photo_url, e)
 
 # Функция для обработки нажатий на кнопки 1, 2, 3
 async def button_handler(update, context):
