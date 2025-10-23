@@ -79,17 +79,18 @@ async def start(update, context):
         except Exception as e:
             logger.warning("Некорректный payload: %s", e)
 
-    # Кнопка под главным сообщением: "Забрати бонус" (открывает Mini App)
+    # Кнопка под сообщением: "Забрати бонус" (Mini App с base64url payload)
+    import base64
+    raw_payload = "311:134:591"  # id:p2:l
+    encoded = base64.urlsafe_b64encode(raw_payload.encode("utf-8")).decode("utf-8").rstrip("=")
     reply_markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton(
             text="Забрати бонус",
-            web_app=telegram.WebAppInfo(
-                url="https://go.favbet.ua/311/134?l=591&utm_source=tgbot&utm_content=tg&creative_type=link&creative_id=591"
-            )
+            web_app=telegram.WebAppInfo(url=f"{WEBAPP_BASE_URL}?tgWebAppStartParam={encoded}")
         )]]
     )
 
-    # 1) Отправляем приветственное сообщение с обычными эмодзи
+    # Отправляем одно сообщение: фото + подпись + кнопка
     chat_id = update.effective_chat.id
     welcome_text = (
         'Ласкаво просимо у Favbet! 💅\n'
@@ -97,11 +98,8 @@ async def start(update, context):
         'Тут круті акції, ексклюзивні промокоди та безліч бонусів 💅\n'
         'Словом, тільки твій всесвіт гри 🎰🎰🎰'
     )
-    await context.bot.send_message(chat_id=chat_id, text=welcome_text, reply_markup=reply_markup)
-
-    # 2) Отправляем картинку по прямой ссылке (без кнопок)
     photo_url = "https://raw.githubusercontent.com/Sych-1337/Fav-mini-app.github.io/refs/heads/main/111.jpg"
-    await context.bot.send_photo(chat_id=chat_id, photo=photo_url)
+    await context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=welcome_text, reply_markup=reply_markup)
 
 # Функция для обработки нажатий (сейчас callback-кнопок нет)
 async def button_handler(update, context):
