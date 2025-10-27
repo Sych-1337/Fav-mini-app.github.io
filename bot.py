@@ -58,7 +58,11 @@ scheduler.start()
 
 
 # -------------------- Subscribers storage helpers --------------------
-SUBS_FILE = os.path.join(os.path.dirname(__file__), 'subscribers.json')
+# Allow overriding storage location (e.g. to a Render Disk mount like /var/data/subscribers.json)
+SUBS_FILE = os.getenv(
+    'SUBS_FILE',
+    os.path.join(os.path.dirname(__file__), 'subscribers.json')
+)
 
 def load_subscribers() -> set[int]:
     try:
@@ -74,8 +78,18 @@ def load_subscribers() -> set[int]:
 
 def save_subscribers(subs: set[int]) -> None:
     try:
-        with open(SUBS_FILE, 'w', encoding='utf-8') as f:
+        # Ensure parent directory exists
+        parent = os.path.dirname(SUBS_FILE)
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+
+        # Atomic write: write to temp file then replace
+        tmp_path = SUBS_FILE + '.tmp'
+        with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(sorted(list(subs)), f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, SUBS_FILE)
     except Exception as e:
         logger.error("Failed to save subscribers.json: %s", e)
 
