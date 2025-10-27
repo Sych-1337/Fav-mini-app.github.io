@@ -4,10 +4,20 @@ import io
 import datetime
 import os
 import logging
+import json
+import asyncio
+import re
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,12 +29,61 @@ if not TOKEN:
 
 WEBAPP_BASE_URL = os.getenv('WEBAPP_BASE_URL', 'http://localhost:8000')
 ALLOWED_REDIRECT_DOMAIN = os.getenv('ALLOWED_REDIRECT_DOMAIN', 'go.favbet.ua')
+CONTROL_CHAT_ID_ENV = os.getenv('CONTROL_CHAT_ID')
+BOT_ADMIN_IDS_ENV = os.getenv('BOT_ADMIN_IDS', '')
+
+# Parse control chat id and admin ids
+CONTROL_CHAT_ID = None
+try:
+    if CONTROL_CHAT_ID_ENV:
+        CONTROL_CHAT_ID = int(CONTROL_CHAT_ID_ENV)
+except ValueError:
+    logger.warning("CONTROL_CHAT_ID is not a valid integer: %s", CONTROL_CHAT_ID_ENV)
+
+BOT_ADMIN_IDS: set[int] = set()
+for part in BOT_ADMIN_IDS_ENV.replace(';', ',').split(','):
+    part = part.strip()
+    if not part:
+        continue
+    try:
+        BOT_ADMIN_IDS.add(int(part))
+    except ValueError:
+        logger.warning("Invalid admin id in BOT_ADMIN_IDS: %s", part)
 
 app = ApplicationBuilder().token(TOKEN).build()
 
 # Инициализируем планировщик задач
 scheduler = BackgroundScheduler()
 scheduler.start()
+
+
+# -------------------- Subscribers storage helpers --------------------
+SUBS_FILE = os.path.join(os.path.dirname(__file__), 'subscribers.json')
+
+def load_subscribers() -> set[int]:
+    try:
+        with open(SUBS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # ensure list of ints
+            return {int(x) for x in data if isinstance(x, (int, str))}
+    except FileNotFoundError:
+        return set()
+    except Exception as e:
+        logger.error("Failed to load subscribers.json: %s", e)
+        return set()
+
+def save_subscribers(subs: set[int]) -> None:
+    try:
+        with open(SUBS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(sorted(list(subs)), f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error("Failed to save subscribers.json: %s", e)
+
+def ensure_user_subscribed(chat_id: int) -> None:
+    subs = load_subscribers()
+    if chat_id not in subs:
+        subs.add(chat_id)
+        save_subscribers(subs)
 
 
 def _decode_payload(payload: str):
@@ -100,6 +159,12 @@ async def start(update, context):
     )
     photo_url = "https://raw.githubusercontent.com/Sych-1337/Fav-mini-app.github.io/refs/heads/main/111.jpg"
     await context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=welcome_text, reply_markup=reply_markup)
+    # Subscribe user who pressed /start
+    try:
+        if update.effective_chat and update.effective_chat.type == 'private':
+            ensure_user_subscribed(update.effective_chat.id)
+    except Exception as e:
+        logger.warning("Failed to add subscriber: %s", e)
 
 # Функция для обработки нажатий (сейчас callback-кнопок нет)
 async def button_handler(update, context):
@@ -135,9 +200,86 @@ async def schedule_message(update, context):
     scheduler.add_job(send_scheduled_message, 'date', run_date=run_time, args=[context])
     await update.message.reply_text(f"Запланировано сообщение на {run_time} с текстом: {text} и картинкой: {photo_url}")
 
+
+# -------------------- Control chat posting --------------------
+def _is_from_control_chat(update) -> bool:
+    try:
+        return CONTROL_CHAT_ID is not None and update.effective_chat and update.effective_chat.id == CONTROL_CHAT_ID
+    except Exception:
+        return False
+
+def _is_admin(update) -> bool:
+    try:
+        return update.effective_user and (update.effective_user.id in BOT_ADMIN_IDS)
+    except Exception:
+        return False
+
+async def _broadcast_to_all(bot, send_callable) -> tuple[int, int]:
+    """send_callable(chat_id) -> awaitable that sends message to chat_id"""
+    subscribers = list(load_subscribers())
+    ok = 0
+    fail = 0
+    for uid in subscribers:
+        try:
+            await send_callable(uid)
+            ok += 1
+        except Exception as e:
+            logger.warning("Failed to send to %s: %s", uid, e)
+            fail += 1
+        await asyncio.sleep(0.05)
+    return ok, fail
+
+def _strip_post_prefix(text: str) -> str:
+    # Remove leading /post or /post@BotName and following spaces
+    return re.sub(r"^/post(?:@\w+)?\s*", "", text or "", flags=re.IGNORECASE)
+
+async def post_text(update, context: ContextTypes.DEFAULT_TYPE):
+    # Accept only from control chat and admin
+    if not _is_from_control_chat(update) or not _is_admin(update):
+        return
+    # Extract text after command
+    body = _strip_post_prefix(update.effective_message.text or "")
+    if not body.strip():
+        await update.effective_message.reply_text("Порожній текст для розсилки")
+        return
+
+    async def send_callable(uid: int):
+        await context.bot.send_message(chat_id=uid, text=body, parse_mode="HTML")
+
+    ok, fail = await _broadcast_to_all(context.bot, send_callable)
+    await context.bot.send_message(chat_id=CONTROL_CHAT_ID, text=f"Розсилка завершена. Успішно: {ok}, помилок: {fail}")
+
+async def post_photo(update, context: ContextTypes.DEFAULT_TYPE):
+    # Accept only from control chat and admin
+    if not _is_from_control_chat(update) or not _is_admin(update):
+        return
+
+    msg = update.effective_message
+    if not msg or not msg.photo:
+        return
+    # Get best quality photo
+    photo = msg.photo[-1]
+    caption = _strip_post_prefix(msg.caption or "")
+
+    async def send_callable(uid: int):
+        await context.bot.send_photo(chat_id=uid, photo=photo.file_id, caption=caption or None, parse_mode="HTML")
+
+    ok, fail = await _broadcast_to_all(context.bot, send_callable)
+    await context.bot.send_message(chat_id=CONTROL_CHAT_ID, text=f"Розсилка завершена (фото). Успішно: {ok}, помилок: {fail}")
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("schedule", schedule_message))
 app.add_handler(CallbackQueryHandler(button_handler))
+if CONTROL_CHAT_ID is not None:
+    # /post text in control chat
+    app.add_handler(CommandHandler("post", post_text, filters=filters.Chat(chat_id=CONTROL_CHAT_ID)))
+    # photo with caption starting with /post
+    app.add_handler(
+        MessageHandler(
+            filters.Chat(chat_id=CONTROL_CHAT_ID) & filters.PHOTO & filters.CaptionRegex(r"^/post(\s|@|$)"),
+            post_photo,
+        )
+    )
 
 logger.info("Starting bot polling...")  
 app.run_polling() 
