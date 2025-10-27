@@ -288,7 +288,11 @@ async def post_photo(update, context: ContextTypes.DEFAULT_TYPE):
     photo = msg.photo[-1]
     caption_body = _strip_post_prefix(msg.caption or "")
     text_body, url = _extract_text_and_url(caption_body)
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", url=url)]]) if url else None
+    reply_markup = (
+        InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", web_app=telegram.WebAppInfo(url=url))]])
+        if url
+        else None
+    )
 
     async def send_callable(uid: int):
         await context.bot.send_photo(chat_id=uid, photo=photo.file_id, caption=text_body or None, parse_mode="HTML", reply_markup=reply_markup)
