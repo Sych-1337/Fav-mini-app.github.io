@@ -233,6 +233,26 @@ def _strip_post_prefix(text: str) -> str:
     # Remove leading /post or /post@BotName and following spaces
     return re.sub(r"^/post(?:@\w+)?\s*", "", text or "", flags=re.IGNORECASE)
 
+def _extract_text_and_url(body: str) -> tuple[str, str | None]:
+    """Parses body like: TEXT **https://example.com**
+    Returns (text_without_markup, url_or_None).
+    If multiple **...** present, use the last occurrence.
+    """
+    if not body:
+        return "", None
+    candidates = list(re.finditer(r"\*\*(.+?)\*\*", body))
+    url = None
+    if candidates:
+        last = candidates[-1]
+        candidate = last.group(1).strip()
+        if re.match(r"^(?:https?://)\S+", candidate, flags=re.IGNORECASE):
+            url = candidate
+            # remove that occurrence from text
+            body = body[: last.start()] + body[last.end() :]
+    # cleanup extra spaces
+    text = re.sub(r"\s+", " ", body).strip()
+    return text, url
+
 async def post_text(update, context: ContextTypes.DEFAULT_TYPE):
     # Accept only from control chat and admin
     if not _is_from_control_chat(update) or not _is_admin(update):
@@ -243,8 +263,11 @@ async def post_text(update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text("Порожній текст для розсилки")
         return
 
+    text_body, url = _extract_text_and_url(body)
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", url=url)]]) if url else None
+
     async def send_callable(uid: int):
-        await context.bot.send_message(chat_id=uid, text=body, parse_mode="HTML")
+        await context.bot.send_message(chat_id=uid, text=text_body, parse_mode="HTML", reply_markup=reply_markup)
 
     ok, fail = await _broadcast_to_all(context.bot, send_callable)
     await context.bot.send_message(chat_id=CONTROL_CHAT_ID, text=f"Розсилка завершена. Успішно: {ok}, помилок: {fail}")
@@ -259,10 +282,12 @@ async def post_photo(update, context: ContextTypes.DEFAULT_TYPE):
         return
     # Get best quality photo
     photo = msg.photo[-1]
-    caption = _strip_post_prefix(msg.caption or "")
+    caption_body = _strip_post_prefix(msg.caption or "")
+    text_body, url = _extract_text_and_url(caption_body)
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", url=url)]]) if url else None
 
     async def send_callable(uid: int):
-        await context.bot.send_photo(chat_id=uid, photo=photo.file_id, caption=caption or None, parse_mode="HTML")
+        await context.bot.send_photo(chat_id=uid, photo=photo.file_id, caption=text_body or None, parse_mode="HTML", reply_markup=reply_markup)
 
     ok, fail = await _broadcast_to_all(context.bot, send_callable)
     await context.bot.send_message(chat_id=CONTROL_CHAT_ID, text=f"Розсилка завершена (фото). Успішно: {ok}, помилок: {fail}")
