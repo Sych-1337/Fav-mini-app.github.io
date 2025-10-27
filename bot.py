@@ -264,7 +264,11 @@ async def post_text(update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text_body, url = _extract_text_and_url(body)
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", url=url)]]) if url else None
+    reply_markup = (
+        InlineKeyboardMarkup([[InlineKeyboardButton("Забрати бонус", web_app=telegram.WebAppInfo(url=url))]])
+        if url
+        else None
+    )
 
     async def send_callable(uid: int):
         await context.bot.send_message(chat_id=uid, text=text_body, parse_mode="HTML", reply_markup=reply_markup)
