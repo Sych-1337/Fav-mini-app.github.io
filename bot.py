@@ -7,6 +7,7 @@ import logging
 import json
 import asyncio
 import re
+import time
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -56,48 +57,120 @@ app = ApplicationBuilder().token(TOKEN).build()
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+# -------------------- JSONL subscribers storage --------------------
+# Используем JSON Lines для безопасной дописи и быстрой загрузки при старте.
+# DATA_DIR можно указывать на Render Disk, например /data
+DATA_DIR = os.getenv('DATA_DIR', os.path.join(os.path.dirname(__file__), 'data'))
+USERS_JSONL = os.path.join(DATA_DIR, 'users.jsonl')
+USERS_SNAPSHOT = os.path.join(DATA_DIR, 'users.snapshot.json')
 
-# -------------------- Subscribers storage helpers --------------------
-# Allow overriding storage location (e.g. to a Render Disk mount like /var/data/subscribers.json)
-SUBS_FILE = os.getenv(
-    'SUBS_FILE',
-    os.path.join(os.path.dirname(__file__), 'subscribers.json')
-)
+# В памяти держим множество подписчиков для быстрой рассылки
+SUBSCRIBERS: set[int] = set()
 
-def load_subscribers() -> set[int]:
+def _ensure_files() -> None:
     try:
-        with open(SUBS_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            # ensure list of ints
-            return {int(x) for x in data if isinstance(x, (int, str))}
-    except FileNotFoundError:
-        return set()
+        os.makedirs(DATA_DIR, exist_ok=True)
+        if not os.path.exists(USERS_JSONL):
+            with open(USERS_JSONL, 'w', encoding='utf-8'):
+                pass
+        if not os.path.exists(USERS_SNAPSHOT):
+            with open(USERS_SNAPSHOT, 'w', encoding='utf-8') as f:
+                json.dump({'subscribers': []}, f)
     except Exception as e:
-        logger.error("Failed to load subscribers.json: %s", e)
-        return set()
+        logger.error('Failed to ensure data files: %s', e)
 
-def save_subscribers(subs: set[int]) -> None:
+def load_subscribers_from_disk() -> set[int]:
+    _ensure_files()
+    subs: set[int] = set()
+    # 1) Быстрый снапшот
     try:
-        # Ensure parent directory exists
-        parent = os.path.dirname(SUBS_FILE)
-        if parent and not os.path.exists(parent):
-            os.makedirs(parent, exist_ok=True)
+        with open(USERS_SNAPSHOT, 'r', encoding='utf-8') as s:
+            data = json.load(s)
+            for cid in data.get('subscribers', []):
+                try:
+                    subs.add(int(cid))
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    # 2) Догружаем хвост из JSONL
+    try:
+        with open(USERS_JSONL, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                op = rec.get('op')
+                cid = rec.get('chat_id')
+                if cid is None:
+                    continue
+                try:
+                    cid = int(cid)
+                except Exception:
+                    continue
+                if op == 'seen':
+                    subs.add(cid)
+                elif op == 'unsubscribe':
+                    subs.discard(cid)
+    except FileNotFoundError:
+        pass
+    return subs
 
-        # Atomic write: write to temp file then replace
-        tmp_path = SUBS_FILE + '.tmp'
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(sorted(list(subs)), f, ensure_ascii=False, indent=2)
+def _append_event(record: dict) -> None:
+    record = dict(record)
+    record['ts'] = int(time.time())
+    payload = json.dumps(record, ensure_ascii=False)
+    try:
+        _ensure_files()
+        # Атомарная допись строки
+        with open(USERS_JSONL, 'a', encoding='utf-8') as f:
+            f.write(payload + '\n')
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp_path, SUBS_FILE)
     except Exception as e:
-        logger.error("Failed to save subscribers.json: %s", e)
+        logger.error('Failed to append JSONL event: %s', e)
 
-def ensure_user_subscribed(chat_id: int) -> None:
-    subs = load_subscribers()
-    if chat_id not in subs:
-        subs.add(chat_id)
-        save_subscribers(subs)
+def mark_seen(chat_id: int) -> None:
+    try:
+        cid = int(chat_id)
+    except Exception:
+        return
+    SUBSCRIBERS.add(cid)
+    _append_event({'op': 'seen', 'chat_id': cid})
+
+def mark_unsubscribe(chat_id: int) -> None:
+    try:
+        cid = int(chat_id)
+    except Exception:
+        return
+    SUBSCRIBERS.discard(cid)
+    _append_event({'op': 'unsubscribe', 'chat_id': cid})
+
+def compact_users() -> None:
+    try:
+        _ensure_files()
+        snap = {'subscribers': sorted(int(x) for x in SUBSCRIBERS)}
+        tmp = USERS_SNAPSHOT + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(snap, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, USERS_SNAPSHOT)
+    except Exception as e:
+        logger.error('Failed to compact users snapshot: %s', e)
+
+# Инициализация подписчиков при старте и планирование компакта
+try:
+    SUBSCRIBERS = load_subscribers_from_disk()
+    logger.info("Loaded %d subscribers from JSONL store", len(SUBSCRIBERS))
+    # ежедневная компакция в 03:30
+    scheduler.add_job(compact_users, 'cron', hour=3, minute=30)
+except Exception as e:
+    logger.warning("Failed to initialize subscribers: %s", e)
 
 
 def _decode_payload(payload: str):
@@ -173,10 +246,10 @@ async def start(update, context):
     )
     photo_url = "https://raw.githubusercontent.com/Sych-1337/Fav-mini-app.github.io/refs/heads/main/111.jpg"
     await context.bot.send_photo(chat_id=chat_id, photo=photo_url, caption=welcome_text, reply_markup=reply_markup)
-    # Subscribe user who pressed /start
+    # Subscribe user who pressed /start (JSONL append-only)
     try:
         if update.effective_chat and update.effective_chat.type == 'private':
-            ensure_user_subscribed(update.effective_chat.id)
+            mark_seen(update.effective_chat.id)
     except Exception as e:
         logger.warning("Failed to add subscriber: %s", e)
 
@@ -230,7 +303,7 @@ def _is_admin(update) -> bool:
 
 async def _broadcast_to_all(bot, send_callable) -> tuple[int, int]:
     """send_callable(chat_id) -> awaitable that sends message to chat_id"""
-    subscribers = list(load_subscribers())
+    subscribers = list(SUBSCRIBERS)
     ok = 0
     fail = 0
     for uid in subscribers:
@@ -314,8 +387,18 @@ async def post_photo(update, context: ContextTypes.DEFAULT_TYPE):
     ok, fail = await _broadcast_to_all(context.bot, send_callable)
     await context.bot.send_message(chat_id=CONTROL_CHAT_ID, text=f"Розсилка завершена (фото). Успішно: {ok}, помилок: {fail}")
 
+# Пользовательская отписка от рассылки
+async def unsubscribe_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        if update.effective_chat and update.effective_chat.type == 'private':
+            mark_unsubscribe(update.effective_chat.id)
+            await update.effective_message.reply_text("🔕 Ви відписані від розсилки.")
+    except Exception as e:
+        logger.warning("Failed to unsubscribe: %s", e)
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("schedule", schedule_message))
+app.add_handler(CommandHandler("unsubscribe", unsubscribe_cmd))
 app.add_handler(CallbackQueryHandler(button_handler))
 if CONTROL_CHAT_ID is not None:
     # /post text in control chat
