@@ -396,9 +396,18 @@ async def unsubscribe_cmd(update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.warning("Failed to unsubscribe: %s", e)
 
+# Статистика подписчиков (только для админа в штабе)
+async def stats_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_from_control_chat(update) or not _is_admin(update):
+        return
+    count = len(SUBSCRIBERS)
+    await update.effective_message.reply_text(f"📊 Підписників у базі: {count}")
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("schedule", schedule_message))
 app.add_handler(CommandHandler("unsubscribe", unsubscribe_cmd))
+if CONTROL_CHAT_ID is not None:
+    app.add_handler(CommandHandler("stats", stats_cmd, filters=filters.Chat(chat_id=CONTROL_CHAT_ID)))
 app.add_handler(CallbackQueryHandler(button_handler))
 if CONTROL_CHAT_ID is not None:
     # /post text in control chat
